@@ -5,7 +5,7 @@ Libraries: [OpenCV 3.0](http://opencv.org/downloads.html) and [Java Tesseract OC
 Personal project for solving Sudoku puzzles using a webcam feed for image capture
 and redisplaying the solution back to the user as an overlay on the video display. 
 
-<img src="http://i.imgur.com/IHukXHn.png" alt="Sudoku-Webcam" width="325" heignt="350"/>
+<img src="http://i.imgur.com/IHukXHn.png" alt="Sudoku-Webcam" width="625" heignt="650"/>
 
 
 
