@@ -9,11 +9,11 @@ Image below shows the application running.
 
 <img src="http://i.imgur.com/IHukXHn.png" alt="Sudoku-Webcam" width="625" heignt="650"/>
 
-<b>Top left</b>: Video feed from webcam, solution is overlayed on top once found  
-<b>Top right</b>: Find board position, and crop image to red outline  
+<b>Top left</b>: Video feed from webcam, solution is overlayed on top once found, 
+<b>Top right</b>: App will locate the board's position, and crop image to red outline  
 <b>Bottom left</b>: Locate the 9 boxes of the puzzle from cropped image  
 <b>Bottom middle</b>: Reduced noise from shadows for optical character recognition  
-<b>Bottom right</b>: Count black blobs for correct amount of hints in puzzle, for OCR to scan in
+<b>Bottom right</b>: Count black blobs for correct number of hints given by puzzle
 
 
 
