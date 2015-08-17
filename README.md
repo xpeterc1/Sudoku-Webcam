@@ -1,5 +1,4 @@
 # Sudoku-Webcam
-Personal Project 
 
 Using OpenCV and Tesseract OCR libraries.
 
