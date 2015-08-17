@@ -13,7 +13,7 @@ Image below shows the application running.
 <b>Top right</b>: Crop to red outline  
 <b>Bottom left</b>: Locate the 9 boxes of the puzzle from cropped image  
 <b>Bottom middle</b>: Reduced noise from shadows for optical character recognition  
-<b>Bottom right</b>: Count black blobs for correct amount of hints found in image.  
+<b>Bottom right</b>: Count black blobs for correct amount of hints in puzzle, for OCR to scan in
 
 
 
