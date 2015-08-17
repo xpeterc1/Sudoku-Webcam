@@ -128,7 +128,7 @@ public class MySolver {
 		for(int i = 0; i < BOARD_DIMENSIONS; i++){
 			ArrayList<Integer> list = colCheck(i, board);
 			if(list == null)
-				return false; //Dupplicate found within the same column
+				return false; //Duplicate found within the same column
 			colRef.add(list);
 		}	
 		for(int i = 0; i < BOARD_DIMENSIONS; i+=BOX_SIZE){
