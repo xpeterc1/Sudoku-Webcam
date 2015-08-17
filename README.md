@@ -16,8 +16,10 @@ Image below shows the application running.
 <b>Bottom right</b>: Count black blobs for correct amount of hints found in image.  
 
 
+
 Tested using a Logitech QuickCam Pro 9000 (webcam)  
 Tested mainly on printed out sudoku puzzles from google images, 
-and from http://www.websudoku.com/.
+and from http://www.websudoku.com/.  
+Capturing image off a monitor works but were not ideal.
 
 
