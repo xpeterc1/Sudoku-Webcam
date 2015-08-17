@@ -21,13 +21,9 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 import java.awt.Image;
-import net.sourceforge.javaocr.ImageScanner;
-import net.sourceforge.javaocr.ocr.PixelImage;
-import net.sourceforge.javaocr.ocrPlugins.mseOCR.OCRScanner;
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
 
-import org.bytedeco.javacv.CanvasFrame;
 import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfPoint;
@@ -37,7 +33,17 @@ import org.opencv.core.Rect;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
-
+/*Author: Peter Chow
+ * 
+ * Reads in given images from the Core method getImages().
+ * Approximates all squares from the images within the upper and lower bounds and crop that image.
+ * The thread will attempt to find the smaller 9 boxes using the cropped image.
+ * Once it has locate all 9 boxes, it will count the number of hints given already and try to determine what value 
+ * the cell has by using Optical Character Recognition.
+ * Populate a board with the values and have it be solved.
+ * finally creating an overlay to be displayed back to the user to show the answer within the real-time video
+ *  
+ * */
 
 public class BoardScanner implements Runnable{
 	Tesseract instance;
@@ -62,10 +68,10 @@ public class BoardScanner implements Runnable{
 	 * 	Cell = 1X1
 	 * */
 
-
+	//Public method that reads in a source image and locates approximate ares where squares are found within the upper and lower bounds given.
 	public HashMap<String, Mat> getImages(Mat sourceImg, double lowerBound, double upperBound, int erodeLevel, boolean runThread){ 
 		HashMap<String, Mat> returnImg = new HashMap<String, Mat>();
-		
+
 		ArrayList<Rect> boxList = getBoxes(sourceImg, lowerBound, upperBound, erodeLevel);
 		if(boxList.isEmpty())
 			return null;
@@ -76,15 +82,16 @@ public class BoardScanner implements Runnable{
 		Mat outline = sourceImg.clone();
 		for(int i = 0; i < boxList.size(); i++){
 			Rect squRect = boxList.get(i);
-			if(runThread && foundBoard){
-				Mat solvedScreen = sourceImg.clone();
-				for(int j = 0; j < BOARD_DIMENSION; j++){
-					Imgproc.putText(solvedScreen, solvedBoard[j], new Point(squRect.x,squRect.y+((squRect.height/9)*(j+1))), Core.FONT_HERSHEY_SIMPLEX, 1.2, new Scalar(0, 255, 10), 2, Core.LINE_AA, false);
+
+			if(foundBoard){
+				if(runThread){
+					Mat solvedScreen = sourceImg.clone();
+					for(int j = 0; j < BOARD_DIMENSION; j++)
+						Imgproc.putText(solvedScreen, solvedBoard[j], new Point(squRect.x,squRect.y+((squRect.height/9)*(j+1))), Core.FONT_HERSHEY_SIMPLEX, 1.2, new Scalar(0, 255, 10), 2, Core.LINE_AA, false);
+					returnImg.put("screen", solvedScreen);
 				}
-				returnImg.put("screen", solvedScreen);
 			}
-			
-			Imgproc.rectangle(outline, new Point(squRect.x,squRect.y), new Point(squRect.x+squRect.width,squRect.y+squRect.height), getColor(i), THICKNESS);
+			Imgproc.rectangle(outline, new Point(squRect.x,squRect.y), new Point(squRect.x+squRect.width,squRect.y+squRect.height), MyImgproc.getColor(i), THICKNESS);
 
 			Mat crop = new Mat(sourceImg.clone(), squRect);
 			returnImg.put("box"+i, crop);
@@ -93,9 +100,9 @@ public class BoardScanner implements Runnable{
 			Imgproc.threshold(getUsableImg(crop, ERODE_THRESHOLD), invertCrop, 240, 255, Imgproc.THRESH_BINARY_INV);
 			returnImg.put("boxInvert"+i, invertCrop);
 		}
-	
+
 		returnImg.put("cropOutline", outline);
-		returnImg.put("machineView", (ImageProcessing.toDilate((ImageProcessing.toCannyTest(ImageProcessing.toGreyscale(sourceImg.clone())).clone()),2)));
+		returnImg.put("machineView", (MyImgproc.toDilate((MyImgproc.toCanny(MyImgproc.toGreyscale(sourceImg.clone())).clone()),2)));
 		/**************************/
 
 		if(runThread && !threadBusy){
@@ -112,7 +119,7 @@ public class BoardScanner implements Runnable{
 	}
 
 
-	//returns a list a contours that meet the conditions of our lower and upper bounds.
+	//returns a list a boxes that meet the conditions of our lower and upper bounds.
 	private ArrayList<Rect> getBoxes(Mat sourceImg, double lowerBound, double upperBound, int erodeLevel){
 		ArrayList<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 		Mat usableImage = getUsableImg(sourceImg, erodeLevel);
@@ -141,6 +148,7 @@ public class BoardScanner implements Runnable{
 		return Imgproc.boundingRect(points);
 	}
 
+
 	/*	sort ArrayList based on their 2D position from Top-Bottom, Left-Right 
 	 *	by checking if both mid-points are on the same horizontal plane using angles
 	 *	else check the vertical plane.
@@ -163,7 +171,8 @@ public class BoardScanner implements Runnable{
 		return list;
 	}
 
-	//Clean up Mat image for easier processing
+
+	//Clean up Mat image for easier optical character recognition processing
 	private Mat getUsableImg(Mat sourceImg, int erosion_size){
 
 		Mat usableImg = new Mat(sourceImg.size(), IPL_DEPTH_8U);
@@ -178,7 +187,7 @@ public class BoardScanner implements Runnable{
 		return usableImg;
 	}
 
-	//Convert Mat to BufferedImage for tesseract OCR use
+	//Convert Mat to BufferedImage for tesseract optical character recognition use
 	private static BufferedImage MatToBufferedImage(Mat frame){
 		int type = 0;
 		if (frame.channels() == 1) {
@@ -195,20 +204,18 @@ public class BoardScanner implements Runnable{
 		return image;
 	}
 
-	//Checks if there is a number in the board's cell and try to OCR a value for that index, returns populated board array
+	//Checks if there is anything in the board's cell and try to OCR a value for that index, returns a populated board array
 	private int[][] populateBoard(Mat image){
 
 		HashMap<String, Mat> box = getImages(image.clone(), .2, .5, 7, false);
-		if(box == null){
-			return null;
-		}
+		if(box == null) return null;
+
 		int hintsFound = 0;
 		int[][] board = new int[9][9];
 
 		for(int boxIndex = 0; boxIndex < 9; boxIndex++){
-			if(!box.containsKey("boxInvert"+boxIndex)){
-				return null;
-			}
+			if(!box.containsKey("boxInvert"+boxIndex)) return null;
+
 			Mat currentBoxImg = box.get("box"+boxIndex);
 
 			Mat cellInvert = box.get("boxInvert"+boxIndex);
@@ -230,48 +237,23 @@ public class BoardScanner implements Runnable{
 
 					if(whitePixelCount < pixelCountThreshold){
 						String subCellValue = ocrScanner(new Mat(currentBoxImg.clone(), subCellDimensions));
-						if(subCellValue.length() == 1){
+						if(subCellValue.length() == 1)
 							board[row + subRow][col + subCol] = Integer.parseInt(subCellValue); 
-							//Integer.parseInt(subCellVal);
-						}else{
-							//If not values can be found for this hint, we return to get a new image to try and grab the hint again.
-							return null;
-						}
+						else return null;
+						//If not values can be found for this hint, we return to get a new image to try and grab the hint again.
+
 						hintsFound++;
 					}
 				}
 			}
 
 		}
-		if(hintsFound < 17){
-			//Mathematicians prove that there is no puzzle less than 16 hints given
-			return null;
-		}
-		return board;
+		return (hintsFound < 17)? null: board;
+		//Mathematicians prove that there is no puzzle less than 16 hints given
 	}
 
-	//Print board to console for Debugging
-	private static void printBoard(int[][] board)
-	{
-		for (int i = 0; i < 9; i++) {
-			if (i%3 == 0)
-				System.out.println(" -----------------------");
-			for (int j = 0; j < 9; j++) {
-				if (j%3 == 0)
-					System.out.print("| ");
-				System.out.print(((board[i][j] == 0))? " " : Integer.toString(board[i][j]));
-				System.out.print(' ');
-			}
-			System.out.println("|");
-		}
-		System.out.println(" -----------------------");
-		System.out.println();
-	} 
-
-
-	//OCR the given Mat image
+	//Scan image for numbers in the given Mat image
 	private String ocrScanner(Mat image){
-
 		String ocrValues = "";
 		try {
 			ocrValues = instance.doOCR(MatToBufferedImage(image));
@@ -279,54 +261,29 @@ public class BoardScanner implements Runnable{
 			System.err.println("Tesseract Exception");
 		}
 		String getOCRVal = "";
-		char[] temp = ocrValues.trim().toCharArray();
-		for(char c: temp){
+		char[] charArray = ocrValues.trim().toCharArray();
+		for(char c: charArray){
 			if(Character.isDigit(c)){
 				getOCRVal += c;
 			}else{
 				String cStr = Character.toString(c);
 				if(cStr.matches("[ilI]")){
-					getOCRVal += '1';
+					getOCRVal += "1";
 				}else if(cStr.matches("[sz]")){
-					getOCRVal += '5';
+					getOCRVal += "5";
 				}else if(cStr.matches("[d]")){
-					getOCRVal += '6';
+					getOCRVal += "6";
 				}
 			}
 		}
 		return getOCRVal;
 	}
 
-	public void ShowImage(Mat image, String caption, int width, int height) {
-		CanvasFrame canvas = new CanvasFrame(caption, 1); // gamma=1
-		canvas.setDefaultCloseOperation(javax.swing.JFrame.EXIT_ON_CLOSE);
-		canvas.setCanvasSize(width, height);
-		canvas.showImage(MatToBufferedImage(image).getScaledInstance(width, height, Image.SCALE_SMOOTH));
 
-	}
-
-	//Provide some colors for display
-	private Scalar getColor(int i){
-		Color c;
-		switch(i){
-		case 0: c = Color.red; break;
-		case 1: c = Color.orange; break;
-		case 2: c = Color.blue; break;
-		case 3: c = Color.black; break;
-		case 4: c = Color.cyan; break;
-		case 5: c = Color.white; break;
-		case 6: c = Color.yellow; break;
-		case 7: c = Color.magenta; break;
-		case 8: c = Color.green; break;
-		default: c = Color.gray; break;
-		}
-		return new Scalar(c.getBlue(), c.getGreen(), c.getRed());
-	}
-
-	//Thread will find all hint number given, populate board array, and solve the puzzle.
+	//Thread will find all hint number given, 
+	//populate board array, and solve the puzzle.
 	@SuppressWarnings("deprecation")
 	public void run() {
-		//Idea here for this thread is to create a thread to try and OCR all the MAT images in the vector SudokuCells to become usable.
 		this.instance = Tesseract.getInstance();
 		Mat snapshotCopy = null;
 		while(true){
@@ -342,7 +299,9 @@ public class BoardScanner implements Runnable{
 				if(board == null){
 					continue;
 				}
-				printBoard(board);
+
+				MyImgproc.printBoard(board);
+				System.out.println("Starting Board Solver");
 				if(!MySolver.isSolvable(board)){
 					continue;
 				}
@@ -353,13 +312,9 @@ public class BoardScanner implements Runnable{
 						solvedBoard[i] += Integer.toString(board[i][j]) + " ";
 					}
 				}
-				
-				//TODO If we get to this point, that means we have a board with all values found and populated, next step is to now check if it's a valid board by trying to solve it.
-				//Once we solve the board, display answer and exit;
+
 				System.out.println("We have found a usable Board");
 				System.out.println("Exiting Thread");
-				//TODO this boolean should stop the camera from updating, freezing with the image that we found the board with and 
-				//Print answer to the board on the screen
 				foundBoard = true;
 
 				break;
@@ -367,7 +322,7 @@ public class BoardScanner implements Runnable{
 			} catch (InterruptedException e1) {
 				System.err.println("THREAD ERROR");
 			}finally{
-				//get new image
+				//image failed to be recognized, grab a new image from main thread
 				synchronized (getNextSnapshot) {
 					threadBusy = false;
 				}
