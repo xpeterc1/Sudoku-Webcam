@@ -27,25 +27,19 @@ public class MySolver {
 
 	//Core method of this class
 	public static boolean isSolvable(int[][] board){	
-		//long startTime = System.nanoTime();
-		long startTime = System.currentTimeMillis();
-
-		int[][] boardCopy = new int[9][9];
-		CellObject[][] myBoard = copyFromArray(board, boardCopy);
-		//printTable(myBoard);
+		CellObject[][] myBoard = copyFromArray(board);
 		//find possible values per each cell.
-		if(!logicSolve(myBoard, boardCopy)){
+		if(!logicSolve(myBoard, board)){
 			System.out.println("INVALID TABLE: Duplicate found");
 			return false;
 		}
 		//Try brute force using backtracking
 		if(!backtrackSolve(0, 0, myBoard)){
-			System.out.println("INVALID TABLE: No Possible Solution ");
+			System.out.println("INVALID TABLE: No Possible Solution");
 			return false;
 		}
 
 		printTable(myBoard);
-		System.out.println("Found a solution for MYSOLVER in " + (System.currentTimeMillis() - startTime) + "ms, count: ");
 
 		for (int i=0; i < BOARD_DIMENSIONS; i++)    // copy result back into original array
 			for(int j=0; j < BOARD_DIMENSIONS; j++){
@@ -55,34 +49,33 @@ public class MySolver {
 	}
 
 	//Copy int array and save to a copy using CellObjects
-	private static CellObject[][] copyFromArray(int[][] board, int[][] boardCopy){
+	private static CellObject[][] copyFromArray(int[][] board){
 		CellObject[][] myBoard = new CellObject[BOARD_DIMENSIONS][BOARD_DIMENSIONS];
 		for (int i=0; i < BOARD_DIMENSIONS; i++){
 			for(int j=0; j < BOARD_DIMENSIONS; j++){
 				myBoard[i][j] = new CellObject(board[i][j]);
-				boardCopy[i][j] = board[i][j];
 			}
 		}
 		return myBoard;
 	}
 
 	//Creates a reference of all Rows, Columns, and Boxes which we do an intersection based on the cell's location for that cell's possible value list. 
-	private static boolean logicSolve(CellObject[][] myBoard, int[][] boardCopy){
+	private static boolean logicSolve(CellObject[][] myBoard, int[][] board){
 		ArrayList<HashSet<Integer>> rowRef = new ArrayList<HashSet<Integer>>(9);
-		if(!getRowReference(boardCopy, rowRef))
+		if(!getRowReference(board, rowRef))
 			return false;
 		ArrayList<HashSet<Integer>> colRef = new ArrayList<HashSet<Integer>>(9);
-		if(!getColReference(boardCopy, colRef))
+		if(!getColReference(board, colRef))
 			return false;
 
 		ArrayList<HashSet<Integer>> boxRef = new ArrayList<HashSet<Integer>>(9);
-		if(!getBoxReference(boardCopy, boxRef))
+		if(!getBoxReference(board, boxRef))
 			return false;
 
 		//for each cell index, we do the intersection with the references and save that to the cellObject's possible value list.
 		for (int i=0; i < BOARD_DIMENSIONS; i++)
 			for(int j=0; j < BOARD_DIMENSIONS; j++)
-				if(myBoard[i][j].isEmpty())
+				if(board[i][j] == 0)
 					if(!myBoard[i][j].setValList(intersection(rowRef.get(i), colRef.get(j), boxRef.get(((i/3)*3)+(j/3)))))
 						return false; //If no possible values are found for no value cell, board is invalid					
 		return true;
