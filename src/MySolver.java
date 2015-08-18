@@ -40,7 +40,7 @@ public class MySolver {
 
 		long startTime = System.currentTimeMillis();
 
-		//find possible values per each cell.
+		//find possible values for each cell.
 		if(!logicSolve(myBoard)){
 			System.out.println("INVALID TABLE: Duplicate found");
 			return false;
