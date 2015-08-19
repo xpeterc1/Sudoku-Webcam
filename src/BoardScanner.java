@@ -43,15 +43,19 @@ public class BoardScanner implements Runnable{
 	private boolean threadBusy;
 	private String solvedBoard[];
 
-	public BoardScanner(){
+	public BoardScanner()
+	{
 		this.getNextSnapshot = new Object();
 		this.threadWaiting = false;
 		this.foundBoard = false;
 		this.threadBusy = false;
 	}
 
-	//Public method that reads in a source image and locates approximate ares where squares are found within the upper and lower bounds given.
-	public HashMap<String, Mat> getImages(Mat sourceImg, double lowerBound, double upperBound, int erodeLevel, boolean runThread){ 
+	//Public method that reads in a source image and locates approximate ares where squares are found 
+	//within the upper and lower bounds given.
+	public HashMap<String, Mat> getImages(Mat sourceImg, double lowerBound
+		, double upperBound, int erodeLevel, boolean runThread)
+	{ 
 		HashMap<String, Mat> returnImg = new HashMap<String, Mat>();
 
 		ArrayList<Rect> boxList = getBoxList(sourceImg, lowerBound, upperBound, erodeLevel);
@@ -69,12 +73,17 @@ public class BoardScanner implements Runnable{
 			{
 
 				Mat solvedScreen = sourceImg.clone();
-				for(int j = 0; j < BOARD_DIMENSION; j++)
-					Imgproc.putText(solvedScreen, solvedBoard[j], new Point(squRect.x,squRect.y+((squRect.height/9)*(j+1))), Core.FONT_HERSHEY_SIMPLEX, 1.2, new Scalar(0, 255, 10), 2, Core.LINE_AA, false);
+				for(int j = 0; j < BOARD_DIMENSION; j++){
+					Point point = new Point(squRect.x,squRect.y+((squRect.height/9)*(j+1)));
+					Scalar green = new Scalar(0, 255, 10);
+					Imgproc.putText(solvedScreen, solvedBoard[j], point, Core.FONT_HERSHEY_SIMPLEX, 1.2, green, 2, Core.LINE_AA, false);
+				}
 				returnImg.put("screen", solvedScreen);
 
 			}
-			Imgproc.rectangle(outline, new Point(squRect.x,squRect.y), new Point(squRect.x+squRect.width,squRect.y+squRect.height), ImgHelper.getColor(i), THICKNESS);
+			Point startPoi = new Point(squRect.x,squRect.y);
+			Point endPoi = new Point(squRect.x+squRect.width,squRect.y+squRect.height);
+			Imgproc.rectangle(outline, startPoi, endPoi, ImgHelper.getColor(i), THICKNESS);
 
 			Mat crop = new Mat(sourceImg.clone(), squRect);
 			returnImg.put("box"+i, crop);
@@ -85,6 +94,7 @@ public class BoardScanner implements Runnable{
 		}
 
 		returnImg.put("cropOutline", outline);
+		//Cleaned up OCR image for Dev view
 		returnImg.put("machineView", (ImgHelper.toDilate((ImgHelper.toCanny(ImgHelper.toGreyscale(sourceImg.clone())).clone()),2)));
 
 		if(runThread){
