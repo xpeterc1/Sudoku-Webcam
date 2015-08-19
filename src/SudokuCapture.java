@@ -1,4 +1,3 @@
-import javax.swing.JFrame;
 /*Author: Peter Chow
  * 
  * 
@@ -17,14 +16,20 @@ public class SudokuCapture {
 		webcam.display();
 	}
 	
+	//Load up OpenCV lib by checking if the machine is 64-bit or 32-bit
 	private static void init() {
-		System.out.println("start");
+		System.out.println("starting webcam capture");
 		String answer = System.getProperty("sun.arch.data.model");
-		if(answer.matches("64")){
+		if(answer.matches("64"))
+		{
 			System.loadLibrary("./build/x64/opencv_java300");
-		}else if(answer.matches("32")){
+		}
+		else if(answer.matches("32"))
+		{
 			System.loadLibrary("./build/x86/opencv_java300");
-		}else{
+		}
+		else
+		{
 			System.err.println("Your platform is not comptable");
 			System.exit(0);
 		}		
