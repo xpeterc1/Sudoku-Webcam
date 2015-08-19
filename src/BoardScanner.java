@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 import net.sourceforge.tess4j.Tesseract;
 import net.sourceforge.tess4j.TesseractException;
@@ -33,6 +35,7 @@ public class BoardScanner implements Runnable{
 	private Mat currentSnapshot;
 
 	private final int BOARD_DIMENSION = 9;
+	private final int BOX_DIMENSION = 3;
 	private final double PIXEL_THRESHOLD = .6;
 	private final int ERODE_THRESHOLD = 7;
 	private final int THICKNESS = 3;
@@ -43,25 +46,21 @@ public class BoardScanner implements Runnable{
 	private boolean threadBusy;
 	private String solvedBoard[];
 
-	public BoardScanner()
-	{
+	public BoardScanner(){
 		this.getNextSnapshot = new Object();
 		this.threadWaiting = false;
 		this.foundBoard = false;
 		this.threadBusy = false;
 	}
 
-	//Public method that reads in a source image and locates approximate ares where squares are found 
-	//within the upper and lower bounds given.
-	public HashMap<String, Mat> getImages(Mat sourceImg, double lowerBound
-		, double upperBound, int erodeLevel, boolean runThread)
+	//Reads in a source image and locates approximate where squares are within the upper and lower bounds.
+	public Map<String, Mat> getImages(Mat sourceImg, double lowBound, double upBound, int erodeLvl, boolean runThread)
 	{ 
-		HashMap<String, Mat> returnImg = new HashMap<String, Mat>();
-
-		ArrayList<Rect> boxList = getBoxList(sourceImg, lowerBound, upperBound, erodeLevel);
+		Map<String, Mat> returnImg = new HashMap<String, Mat>();
+		List<Rect> boxList = getBoxList(sourceImg, lowBound, upBound, erodeLvl);
 		if(boxList.isEmpty())
 			return null;
-		if(!runThread && boxList.size() == BOARD_DIMENSION)
+		if(!runThread && (boxList.size() == BOARD_DIMENSION))
 			boxList = positionalSort2D(boxList);
 
 
@@ -71,33 +70,33 @@ public class BoardScanner implements Runnable{
 			Rect squRect = boxList.get(i);
 			if(runThread && foundBoard)
 			{
-
+				//Solution Overlay
 				Mat solvedScreen = sourceImg.clone();
 				for(int j = 0; j < BOARD_DIMENSION; j++)
 				{
-					Point point = new Point(squRect.x,squRect.y+((squRect.height/9)*(j+1)));
+					Point point = new Point(squRect.x, squRect.y + ((squRect.height / 9) * (j + 1)));
 					Scalar green = new Scalar(0, 255, 10);
-					Imgproc.putText(solvedScreen, solvedBoard[j], point, Core.FONT_HERSHEY_SIMPLEX, 1.2, green, 2, Core.LINE_AA, false);
+					int font = Core.FONT_HERSHEY_SIMPLEX;
+					Imgproc.putText(solvedScreen, solvedBoard[j], point, font, 1.2, green, 2, Core.LINE_AA, false);
 				}
 				returnImg.put("screen", solvedScreen);
 
 			}
-			Point startPoi = new Point(squRect.x,squRect.y);
-			Point endPoi = new Point(squRect.x+squRect.width,squRect.y+squRect.height);
-			Imgproc.rectangle(outline, startPoi, endPoi, ImgHelper.getColor(i), THICKNESS);
+			Point startPoint = new Point(squRect.x, squRect.y);
+			Point endPoint = new Point(squRect.x + squRect.width, squRect.y + squRect.height);
+			Imgproc.rectangle(outline, startPoint, endPoint, ImgHelper.getColor(i), THICKNESS);
 
 			Mat crop = new Mat(sourceImg.clone(), squRect);
-			returnImg.put("box"+i, crop);
+			returnImg.put(("box" + i), crop);
 
 			Mat invertCrop = new Mat();
 			Imgproc.threshold(getUsableImg(crop, ERODE_THRESHOLD), invertCrop, 240, 255, Imgproc.THRESH_BINARY_INV);
-			returnImg.put("boxInvert"+i, invertCrop);
+			returnImg.put(("boxInvert" + i), invertCrop);
 		}
 
 		returnImg.put("cropOutline", outline);
-		
-		//Developer view of how images are cleaned up of noise
-		returnImg.put("machineView", (ImgHelper.toDilate((ImgHelper.toCanny(ImgHelper.toGreyscale(sourceImg.clone())).clone()),2)));
+
+		returnImg.put("machineView", ImgHelper.getMachineView(sourceImg));
 
 		if(runThread){
 			synchronized (getNextSnapshot) 
@@ -116,12 +115,12 @@ public class BoardScanner implements Runnable{
 
 
 	//returns a list a boxes that meet the conditions of our lower and upper bounds from the image.
-	private ArrayList<Rect> getBoxList(Mat sourceImg, double lowerBound, double upperBound, int erodeLevel)
+	private List<Rect> getBoxList(Mat sourceImg, double lowerBound, double upperBound, int erodeLevel)
 	{
-		ArrayList<MatOfPoint> contours = new ArrayList<MatOfPoint>();
+		List<MatOfPoint> contours = new ArrayList<MatOfPoint>();
 		Mat usableImage = getUsableImg(sourceImg, erodeLevel);
 		Imgproc.findContours(usableImage, contours, new Mat(), Imgproc.RETR_LIST, Imgproc.CHAIN_APPROX_SIMPLE);
-		ArrayList<Rect> box = new ArrayList<Rect>();
+		List<Rect> box = new ArrayList<Rect>();
 
 		for (int i=0; i<contours.size(); i++)
 		{
@@ -141,13 +140,14 @@ public class BoardScanner implements Runnable{
 	 *	by checking if both mid-points are on the same horizontal plane using angles
 	 *	else check the vertical plane.
 	 */
-	private ArrayList<Rect> positionalSort2D(ArrayList<Rect> list)
+	private List<Rect> positionalSort2D(List<Rect> list)
 	{
-		Collections.sort(list, new Comparator<Rect>() 
-				{
+		Collections.sort(list, new Comparator<Rect>() {
 			public int compare(Rect r1, Rect r2)
 			{
-				double angleDegree = Math.abs(Math.toDegrees(Math.atan2((r2.y-r1.y), (r2.x-r1.x))));
+				double atan = Math.atan2((r2.y-r1.y), (r2.x-r1.x));
+				double angleDegree = Math.abs(Math.toDegrees(atan));
+
 				if((angleDegree < 165) && (angleDegree > 30))
 				{
 					Integer yMidPoint1 = r1.y+(r1.height/2);
@@ -161,7 +161,7 @@ public class BoardScanner implements Runnable{
 					return Integer.compare(xMidPoint1, xMidPoint2);
 				}
 			}
-				});
+		});
 		return list;
 	}
 
@@ -184,36 +184,37 @@ public class BoardScanner implements Runnable{
 
 
 	//Checks if there is anything in the board's cell and try to OCR a value for that index, returns a populated board array
-	private int[][] populateBoard(Mat image){
-
-		HashMap<String, Mat> box = getImages(image.clone(), .2, .5, 7, false);
+	private int[][] populateBoard(Mat image)
+	{
+		Map<String, Mat> box = getImages(image.clone(), .2, .5, 7, false);
 		if(box == null) 
 			return null;
 
-		int hintsFound = 0;
 		int[][] board = new int[9][9];
-
-		for(int boxIndex = 0; boxIndex < 9; boxIndex++)
-		{
-			if(!box.containsKey("boxInvert"+boxIndex)) 
-				return null;
+		for(int boxIndex = 0; boxIndex < BOARD_DIMENSION; boxIndex++)
+		{	
+			//Reversed search for boxInvert to know we don't have enough boxes earlier
+			if(!box.containsKey("boxInvert"+(8-boxIndex))) 
+				return null; 
 
 			Mat currentBoxImg = box.get("box"+boxIndex);
 
 			Mat cellInvert = box.get("boxInvert"+boxIndex);
-			double subWidth = cellInvert.width()/3;
-			double subHeight = cellInvert.height()/3;
+			double subWidth = cellInvert.width()/BOX_DIMENSION;
+			double subHeight = cellInvert.height()/BOX_DIMENSION;
 			int pixelCountThreshold = (int) (subWidth*subHeight*PIXEL_THRESHOLD);
 
-			int row = (boxIndex/3)*3;
-			int col = (boxIndex%3)*3;
+			int row = (boxIndex/BOX_DIMENSION) * BOX_DIMENSION;
+			int col = (boxIndex%BOX_DIMENSION) * BOX_DIMENSION;
 
-			for(int subCol = 0; subCol < 3; subCol++)
+			for(int subCol = 0; subCol < BOX_DIMENSION; subCol++)
 			{
-				for(int subRow = 0; subRow < 3; subRow++)
+				for(int subRow = 0; subRow < BOX_DIMENSION; subRow++)
 				{
-					Point start = new Point((subWidth*subCol), (subHeight*subRow));
-					Point end =  new Point(((subWidth*subCol)+subWidth), ((subHeight*subRow)+subHeight));
+					double startX = subWidth*subCol;
+					double startY = subHeight*subRow;
+					Point start = new Point(startX, startY);
+					Point end =  new Point((startX + subWidth), (startY + subHeight));
 					Rect subCellDimensions = new Rect(start, end);
 
 					Mat subCell = new Mat(cellInvert.clone(), subCellDimensions);
@@ -225,17 +226,18 @@ public class BoardScanner implements Runnable{
 						String subCellValue = ocrScanner(new Mat(currentBoxImg.clone(), subCellDimensions));
 						if(subCellValue.length() == 1)
 							board[row + subRow][col + subCol] = Integer.parseInt(subCellValue); 
-						else return null;
-						//If not values can be found for this hint, we return to get a new image to try and grab the hint again.
+						else 
+							return null;
+						//If no values can be found for this hint, we return to get a new image to try and grab the hint again.
+					}//end IF
+					
+				}//Inner For loop
+				
+			}//Mid For loop
 
-						hintsFound++;
-					}
-				}
-			}
-
-		}
-		return (hintsFound < 17)? null: board;
-		//Mathematicians prove that there is no puzzle less than 16 hints given
+		}//Outer For loop
+		return board;
+	
 	}
 
 	//Scan image for numbers in the given Mat image
@@ -281,7 +283,8 @@ public class BoardScanner implements Runnable{
 	//Thread will find all hint number given, 
 	//populate board array, and solve the puzzle.
 	@SuppressWarnings("deprecation")
-	public void run() {
+	public void run() 
+	{
 		this.instance = Tesseract.getInstance();
 		Mat snapshotCopy = null;
 		while(true){
@@ -309,7 +312,7 @@ public class BoardScanner implements Runnable{
 
 				ImgHelper.printBoard(board);				
 
-				solvedBoard = new String[9];
+				solvedBoard = new String[BOARD_DIMENSION];
 				for(int i = 0; i < BOARD_DIMENSION; i++)
 				{
 					solvedBoard[i] = "";
