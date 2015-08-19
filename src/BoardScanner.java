@@ -73,7 +73,8 @@ public class BoardScanner implements Runnable{
 			{
 
 				Mat solvedScreen = sourceImg.clone();
-				for(int j = 0; j < BOARD_DIMENSION; j++){
+				for(int j = 0; j < BOARD_DIMENSION; j++)
+				{
 					Point point = new Point(squRect.x,squRect.y+((squRect.height/9)*(j+1)));
 					Scalar green = new Scalar(0, 255, 10);
 					Imgproc.putText(solvedScreen, solvedBoard[j], point, Core.FONT_HERSHEY_SIMPLEX, 1.2, green, 2, Core.LINE_AA, false);
@@ -94,7 +95,8 @@ public class BoardScanner implements Runnable{
 		}
 
 		returnImg.put("cropOutline", outline);
-		//Cleaned up OCR image for Dev view
+		
+		//Developer view of how images are cleaned up of noise
 		returnImg.put("machineView", (ImgHelper.toDilate((ImgHelper.toCanny(ImgHelper.toGreyscale(sourceImg.clone())).clone()),2)));
 
 		if(runThread){
