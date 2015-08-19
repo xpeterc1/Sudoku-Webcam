@@ -1,9 +1,10 @@
 import java.util.ArrayList;
+import java.util.List;
 
 //A class for storing information for a cell on the board
 public class CellObject {
 	private int value;
-	private ArrayList<Integer> possibleValues;
+	private List<Integer> possibleValues;
 
 	public CellObject(int value)
 	{//Store cell's value and give original list of possible values;
@@ -22,7 +23,7 @@ public class CellObject {
 	}
 	
 	//return the arraylist of possible values this cell can have
-	public ArrayList<Integer> getPossibleValues()
+	public List<Integer> getPossibleValues()
 	{
 		return possibleValues;
 	}
@@ -42,7 +43,7 @@ public class CellObject {
 	/*sets the list of possible values and does a few check
 	* if list size is zero, then no possible values means the board is invalid
 	*otherwise if list is a size of 1, then there is only one possible value for the cell, and assumes that value */
-	public boolean setValList(ArrayList<Integer> list)
+	public boolean setValList(List<Integer> list)
 	{
 		this.possibleValues = new ArrayList<Integer>(list);
 		if(list.size() == 0)
