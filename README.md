@@ -2,8 +2,10 @@
 
 Libraries: [OpenCV 3.0](http://opencv.org/downloads.html) and [Java Tesseract OCR](https://github.com/tesseract-ocr/tesseract).
 
-Personal project for solving Sudoku puzzles using a webcam feed for image capture  
-and redisplaying the solution back to the user as an overlay on the video display.  
+Personal project for solving Sudoku puzzles using a webcam or camera. 
+An image is scanned for a puzzle outline, to determine its position in the image.
+Image is scanned for values using OCR, and processed to find amount of hints given by the puzzle.
+Solve puzzle and redisplay the solution back to the user as an overlay on the video display.  
 
 Image below shows the application running.  
 
@@ -20,6 +22,5 @@ Image below shows the application running.
 Tested using a Logitech QuickCam Pro 9000 (webcam)  
 Tested mainly on printed out sudoku puzzles from google images, 
 and from http://www.websudoku.com/.  
-Capturing image off a monitor works but were not ideal.
 
 
