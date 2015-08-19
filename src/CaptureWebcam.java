@@ -2,7 +2,7 @@
 import java.awt.Graphics;
 import java.awt.image.BufferedImage;
 
-import java.util.HashMap;
+import java.util.Map;
 
 import javax.swing.JFrame;
 import javax.swing.JPanel;
@@ -23,8 +23,8 @@ import org.opencv.videoio.VideoCapture;
 public class CaptureWebcam extends JPanel {
 	private static final long serialVersionUID = 4152259007829979107L;
 
-	private static HashMap<String, Mat> boardMap;
-	private static HashMap<String, Mat> cellMap;
+	private static Map<String, Mat> boardMap;
+	private static Map<String, Mat> cellMap;
 	
 	private static BufferedImage screenImg;
 
@@ -56,12 +56,14 @@ public class CaptureWebcam extends JPanel {
 						boardMap = boardScan.getImages(frame, .5, .95, 3, true);
 						screenImg = ImgHelper.ToBufferedImage((boardMap.containsKey("screen"))? boardMap.get("screen"): frame);
 					}catch(NullPointerException e){
+						//no board was found within the frame, grab new image from webcam
 						screenImg = ImgHelper.ToBufferedImage(frame);
 					}
 
 					try{
 						cellMap = boardScan.getImages(boardMap.get("box0"), .2, .5, 6, false);
 					}catch(NullPointerException e){
+						//Grab new frame from webcam to be processed again.
 						continue;
 					}finally{
 						try {
@@ -99,7 +101,6 @@ public class CaptureWebcam extends JPanel {
 			//Bottom Middle (Clean image for OCR)
 			BufferedImage machineViewImg = ImgHelper.ToBufferedImage(cellMap.get("machineView"));
 			g.drawImage(machineViewImg ,cropImg.getWidth(), screenImg.getHeight(), this);
-			/*************************************************************************/
 
 			//Blob counter images, Bottom Right
 			BufferedImage image = null;
@@ -113,12 +114,12 @@ public class CaptureWebcam extends JPanel {
 				}
 			}
 		}catch(NullPointerException e){
-			
+			//Image was not in range of a board, no usable data could be extracted
 		}
 	}
 
 	public CaptureWebcam() 
-	{	//Constructor
+	{	//Constructor to start webcam capture
 		this.camera = new VideoCapture(0);
 		this.frame = new Mat();
 		this.camera.read(frame);
