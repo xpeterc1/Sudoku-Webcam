@@ -43,6 +43,10 @@ public class ImgHelper {
 		return threshold;
 	}
 	
+	//processed machine view for Developer display
+	public static Mat getMachineView(Mat source){
+		return toDilate(toCanny(toGreyscale(source.clone())), 2);
+	}
 	//Reduce noise from images
 	public static Mat toDilate(Mat source, int erosion_size)
 	{	
