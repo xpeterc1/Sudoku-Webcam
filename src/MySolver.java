@@ -33,7 +33,7 @@ public class MySolver {
 				myBoard[i][j] = new CellObject(board[i][j]);
 		
 		
-		if(!isPossibleToSolve(myBoard, board))
+		if(!isPossibleToSolve(myBoard))
 		{	//checks if each cell has any possible values and duplicates
 			System.out.println("INVALID BOARD: Duplicate found");
 			return false;
@@ -54,18 +54,18 @@ public class MySolver {
 		return true;
 	}
 
-	private static boolean isPossibleToSolve(CellObject[][] myBoard, int[][] board)
-	{	//Creates a reference of all Rows, Columns, and Boxes which we do an intersection based on the cell's location for that cell's possible value list. 
-		ArrayList<HashSet<Integer>> rowRef = new ArrayList<HashSet<Integer>>(9);
-		if(!getRowReference(board, rowRef))
+	private static boolean isPossibleToSolve(CellObject[][] myBoard)
+	{	//Creates a reference of all Rows, Columns, and Boxes which we do an intersection based on the cell's index
+		List<Set<Integer>> rowRef = new ArrayList<Set<Integer>>(9);
+		if(!getRowReference(myBoard, rowRef))
 			return false;
 
-		ArrayList<HashSet<Integer>> colRef = new ArrayList<HashSet<Integer>>(9);
-		if(!getColReference(board, colRef))
+		List<Set<Integer>> colRef = new ArrayList<Set<Integer>>(9);
+		if(!getColReference(myBoard, colRef))
 			return false;
 
-		ArrayList<HashSet<Integer>> boxRef = new ArrayList<HashSet<Integer>>(9);
-		if(!getBoxReference(board, boxRef))
+		List<Set<Integer>> boxRef = new ArrayList<Set<Integer>>(9);
+		if(!getBoxReference(myBoard, boxRef))
 			return false;
 
 		//for each cell index, we do the intersection with the references and save that to the cellObject's possible value list.
@@ -87,7 +87,7 @@ public class MySolver {
 		if (!board[row][col].isEmpty())   // skip cells that is filled
 			return solve(row+1, col, board);
 
-		ArrayList<Integer> copyValues = board[row][col].getPossibleValues();
+		List<Integer> copyValues = board[row][col].getPossibleValues();
 		for (Integer value: copyValues) {     // try all data from the intersected reference list
 			if(isLegal(board, row, col, value))
 			{
@@ -123,13 +123,14 @@ public class MySolver {
 		return true; // no violations, so it's allowed
 	}
 
-	private static boolean getRowReference(int[][] board, ArrayList<HashSet<Integer>> rowRef){
+	private static boolean getRowReference(CellObject[][] board, List<Set<Integer>> rowRef)
+	{	//get all values for each row on the board, list is row index and set is value of each row
 		for(int row = 0; row < BOARD_DIMENSION; row++)
 		{
-			HashSet<Integer> currentRowRef = new HashSet<Integer>(VALUE_LIST); 
+			Set<Integer> currentRowRef = new HashSet<Integer>(VALUE_LIST); 
 			for(int col = 0; col < BOARD_DIMENSION; col++)
 			{
-				int value = board[row][col];
+				int value = board[row][col].getValue();
 				if(value != 0 && !currentRowRef.remove(Integer.valueOf(value)))
 					return false;
 			}
@@ -138,13 +139,14 @@ public class MySolver {
 		return true;
 	}
 
-	private static boolean getColReference(int[][] board, ArrayList<HashSet<Integer>> colRef){
+	private static boolean getColReference(CellObject[][] board, List<Set<Integer>> colRef)
+	{	//get all values for each column on the board, list is col index and set is value of each column
 		for(int col = 0; col < BOARD_DIMENSION; col++)
 		{
-			HashSet<Integer> currentColRef = new HashSet<Integer>(VALUE_LIST); 
+			Set<Integer> currentColRef = new HashSet<Integer>(VALUE_LIST); 
 			for(int row = 0; row < BOARD_DIMENSION; row++)
 			{
-				int value = board[row][col];
+				int value = board[row][col].getValue();
 				if(value != 0 && !currentColRef.remove(Integer.valueOf(value)))
 					return false;
 			}
@@ -153,16 +155,16 @@ public class MySolver {
 		return true;
 	}
 
-	private static boolean getBoxReference(int[][] board, ArrayList<HashSet<Integer>> boxRef){
+	private static boolean getBoxReference(CellObject[][] board, List<Set<Integer>> boxRef)
+	{	//get all value for each box on the board, list is index of each box and set is value of each box
 		for(int row = 0; row < BOARD_DIMENSION; row+=3)
 			for(int col = 0; col < BOARD_DIMENSION; col+=3)
 			{
-				HashSet<Integer> currentBoxRef = new HashSet<Integer>(VALUE_LIST); 
-
+				Set<Integer> currentBoxRef = new HashSet<Integer>(VALUE_LIST); 
 				for(int i = 0; i < BOX_DIMENSION; i++)
 					for(int j = 0; j < BOX_DIMENSION; j++)
 					{
-						int value = board[i + row][j + col];
+						int value = board[i + row][j + col].getValue();
 						if(value != 0 && !currentBoxRef.remove(Integer.valueOf(value)))
 							return false;
 					}
@@ -172,9 +174,9 @@ public class MySolver {
 		return true;
 	}
 
-	private static ArrayList<Integer> intersection(Set<Integer> rowRef, Set<Integer> colRef, Set<Integer> boxRef){
+	private static List<Integer> intersection(Set<Integer> rowRef, Set<Integer> colRef, Set<Integer> boxRef){
 		List<Integer> iter = new ArrayList<Integer>(boxRef);
-		ArrayList<Integer> result = new ArrayList<Integer>();
+		List<Integer> result = new ArrayList<Integer>();
 
 		for (int n: iter) 
 			if(colRef.contains(n) && rowRef.contains(n)) 
@@ -193,7 +195,7 @@ public class MySolver {
 
 
 
-	//Test cases provided for use as a standalone Sudoku solver, full main is at SudokuCapture.java
+	//Test cases provided for use as a simple Sudoku solver 
 	@SuppressWarnings("unused")
 	public static void main(String[] args){
 		int[][] intBoard = new int[][]{	
@@ -240,17 +242,6 @@ public class MySolver {
 				{1,7,0,0,6,0,3,0,4},
 				{0,0,0,2,0,5,8,0,6}};
 		
-		int[][] blank = new int[][]{	
-				{0,0,0,0,0,0,0,0,0},
-				{0,0,0,0,0,0,0,0,0},
-				{0,0,0,0,0,0,0,0,0},
-				{0,0,0,0,0,0,0,0,0},
-				{0,0,0,0,0,0,0,0,0},
-				{0,0,0,0,0,0,0,0,0},
-				{0,0,0,0,0,0,0,0,0},
-				{0,0,0,0,0,0,0,0,0},
-				{0,0,0,0,0,0,0,0,0}};
-		
 		int[][] HARD = new int[][]{	
 				{5,1,0,0,0,0,0,8,0},
 				{0,7,0,1,0,0,0,0,0},
@@ -261,8 +252,10 @@ public class MySolver {
 				{0,2,0,6,4,0,0,0,0},
 				{0,0,0,0,0,1,0,3,0},
 				{0,4,0,0,0,0,0,2,1}};
-				
+
+
 		MySolver.getSolution(HARD);
+		ImgHelper.printBoard(HARD);
 
 	}
 }
