@@ -2,11 +2,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 //A class for storing information for a cell on the board
-public class CellObject {
+public class SudokuCell {
 	private int value;
 	private List<Integer> possibleValues;
 
-	public CellObject(int value)
+	public SudokuCell(int value)
 	{//Store cell's value and give original list of possible values;
 		this.value = value;
 	}
