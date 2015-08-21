@@ -12,7 +12,7 @@ import org.opencv.core.Size;
 import org.opencv.imgproc.Imgproc;
 
 
-public class ImgHelper {
+public class ImgUtil {
 	//A image processing helper class that has simple uses and out of the way.
 	
 	private static int LOW_THRESHOLD = 100;
