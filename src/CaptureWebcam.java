@@ -1,10 +1,7 @@
 
 import java.awt.Graphics;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
-import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
 
 import java.util.Map;
@@ -14,6 +11,12 @@ import javax.swing.JPanel;
 
 import org.opencv.core.*;
 import org.opencv.videoio.VideoCapture;
+
+import EnumValues.Box;
+import EnumValues.Invert_Box;
+import EnumValues.Views;
+import EnumValues.EnumValues;
+
 /*Author: Peter Chow
  * 
  * This is a personal project for learning how to scan and search through an image.
@@ -28,8 +31,8 @@ import org.opencv.videoio.VideoCapture;
 public class CaptureWebcam extends JPanel{
 	private static final long serialVersionUID = 4152259007829979107L;
 
-	private static Map<String, Mat> boardMap;
-	private static Map<String, Mat> cellMap;
+	private static Map<EnumValues<Integer>, Mat> boardMap;
+	private static Map<EnumValues<Integer>, Mat> cellMap;
 	
 	private static BufferedImage screenImg;
 	private BoardScan boardScan;
@@ -61,15 +64,15 @@ public class CaptureWebcam extends JPanel{
 					frame0.repaint();
 					frame0.revalidate();
 					try{
-						boardMap = boardScan.findBoardImg(frame, .5, .95, 3, true);
-						screenImg = ImgUtil.ToBufferedImage((boardMap.containsKey("screen"))? boardMap.get("screen"): frame);
+						boardMap = boardScan.findBoardImg(frame, .5, .95, 3);
+						screenImg = ImgUtil.ToBufferedImage((boardMap.containsKey(Views.SCREEN_VIEW))? boardMap.get(Views.SCREEN_VIEW): frame);
 					}catch(NullPointerException e){
 						//no board was found within the frame, grab new image from webcam
 						screenImg = ImgUtil.ToBufferedImage(frame);
 					}
 
 					try{
-						cellMap = boardScan.findBoxImg(boardMap.get("box0"), .2, .5, 6);
+						cellMap = BoxScan.findBoxImg(boardMap.get(Views.CROP_VIEW), .2, .5, 6);
 					}catch(NullPointerException e){
 						//Grab new frame from webcam to be processed again.
 						continue;
@@ -99,15 +102,15 @@ public class CaptureWebcam extends JPanel{
 		
 		try{
 			//Top Right (Locate Board)
-			BufferedImage cropLineImg = ImgUtil.ToBufferedImage(boardMap.get("cropOutline"));
+			BufferedImage cropLineImg = ImgUtil.ToBufferedImage(boardMap.get(Views.BOARD_OUTLINE_VIEW));
 			g.drawImage(cropLineImg ,cropLineImg.getWidth(), 0, this);
 			
 			//Bottom Left (Locate the 3x3 boxes)
-			BufferedImage cropImg = ImgUtil.ToBufferedImage(cellMap.get("cropOutline"));
+			BufferedImage cropImg = ImgUtil.ToBufferedImage(cellMap.get(Views.BOX_OUTLINE_VIEW));
 			g.drawImage(cropImg , 0, screenImg.getHeight(), this);
 
 			//Bottom Middle (Clean image for OCR)
-			BufferedImage machineViewImg = ImgUtil.ToBufferedImage(cellMap.get("machineView"));
+			BufferedImage machineViewImg = ImgUtil.ToBufferedImage(cellMap.get(Views.MACHINE_VIEW));
 			g.drawImage(machineViewImg ,cropImg.getWidth(), screenImg.getHeight(), this);
 
 			//Blob counter images, Bottom Right
@@ -117,7 +120,7 @@ public class CaptureWebcam extends JPanel{
 			{
 				for(int j = 0; j < 3; j++)
 				{
-					image = ImgUtil.ToBufferedImage(cellMap.get("boxInvert"+((i*3)+j)));
+					image = ImgUtil.ToBufferedImage(cellMap.get(Invert_Box.getEnum(((i*3)+j)))); //Invert_Boxes.getEnum(((i*3)+j))
 					g.drawImage(image, position+(image.getWidth()*j), screenImg.getHeight()+(image.getHeight()*i), this);
 				}
 			}
@@ -144,9 +147,8 @@ public class CaptureWebcam extends JPanel{
 		JFrame frame0 = new JFrame();
 		frame0.addWindowListener(new WindowAdapter() {
 			  public void windowClosing(WindowEvent e) {
-				  boardScan.stop();
 				  readCameraLoop = false; 
-				  System.out.println("EXIT?");
+				  boardScan.stop();
 				  System.exit(0);
 			  }
 			});
