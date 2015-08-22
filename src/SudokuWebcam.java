@@ -1,14 +1,14 @@
 /*Author: Peter Chow
  * 
  * 
- * SudokuCapture will capture images from a webcam, 
+ * SudokuWebcam will capture images from a webcam, 
  * using still image capture from the video, another thread will approximate the bounds of the board
  * and try to scan in the values of the board for the program to use.
  * After a successful scan, the program will solve the board and display the answer using an overlay over the camera view
  * 
  * */
 
-public class SudokuCapture {
+public class SudokuWebcam {
 	
 	public static void main (String args[]){
 		init();
