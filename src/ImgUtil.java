@@ -1,142 +1,167 @@
-import static org.bytedeco.javacpp.opencv_core.IPL_DEPTH_8U;
 
-import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.event.WindowAdapter;
+import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
-import java.awt.image.DataBufferByte;
-import java.awt.image.WritableRaster;
 
-import org.opencv.core.Mat;
-import org.opencv.core.Point;
-import org.opencv.core.Scalar;
-import org.opencv.core.Size;
-import org.opencv.imgproc.Imgproc;
+import java.util.Map;
 
+import javax.swing.JFrame;
+import javax.swing.JPanel;
 
-public class ImgUtil {
-	//A image processing helper class that has simple uses and out of the way.
+import org.opencv.core.*;
+import org.opencv.videoio.VideoCapture;
+
+import EnumValues.Box;
+import EnumValues.Invert_Box;
+import EnumValues.Views;
+import EnumValues.EnumValues;
+
+/*Author: Peter Chow
+ * 
+ * This is a personal project for learning how to scan and search through an image.
+ * Using this information combined with an interest with the puzzle game Sudoku, 
+ * this code was created to try and understand how to solve such a Sudoku puzzle using 
+ * image manipulation in OpenCV and OCR for reading in characters from an image.
+ * 
+ * This class is for displaying and getting all the image to the user
+ * 
+ * This code will show an application views of different process used to try and solve the puzzle
+ * */
+public class CaptureWebcam extends JPanel{
+	private static final long serialVersionUID = 4152259007829979107L;
+
+	private static Map<EnumValues<Integer>, Mat> boardMap;
+	private static Map<EnumValues<Integer>, Mat> cellMap;
 	
-	private static int LOW_THRESHOLD = 100;
-	private static int HIGH_THRESHOLD = 255;
-	private final static int BOARD_DIMENSION = 9;
-	private final static int BOX_DIMENSION = 3;
-	
-	//remove color data from the image
-	public static Mat toGreyscale(Mat source)
-	{
-		Mat greyscale = new Mat();
-		Imgproc.cvtColor(source, greyscale, Imgproc.COLOR_BGR2GRAY);
-		return greyscale;
-	}
-	
-	//Remove range of grey to be within the low and high threshold and create an bone structure like image
-	public static Mat toCanny(Mat source)
-	{
-		Mat canny = new Mat(source.size(), IPL_DEPTH_8U);
-		Imgproc.Canny(source, canny, LOW_THRESHOLD, HIGH_THRESHOLD, 3, false);
-		return canny;
-	}
-	
-	//Invert black and white images
-	public static Mat toThreshBinary(Mat source){
-		Mat threshold = new Mat();
-		Imgproc.threshold(source, threshold, LOW_THRESHOLD, HIGH_THRESHOLD, Imgproc.THRESH_BINARY_INV);
-		return threshold;
-	}
-	
-	//processed machine view for Developer display
-	public static Mat getMachineView(Mat source){
-		return toDilate(toCanny(toGreyscale(source.clone())), 2);
-	}
-	//Reduce noise from images
-	public static Mat toDilate(Mat source, int erosion_size)
-	{	
-		Size kSize = new Size(2 * erosion_size + 1, 2 * erosion_size + 1);
-		Point anchor = new Point(erosion_size, erosion_size);
-		Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, kSize, anchor);
-		Mat dilateDes = new Mat(source.size(), IPL_DEPTH_8U);
-		Imgproc.dilate(source, dilateDes, element);
-		return dilateDes;
-	}
-	
-	//invert black and white colors
-	public static Mat getInvert(Mat source, int erosionLvl){
-		Mat invert = new Mat();
-		Imgproc.threshold(getUsableImg(source.clone(), erosionLvl), invert, 240, 255, Imgproc.THRESH_BINARY_INV);
-		return invert;
+	private static BufferedImage screenImg;
+	private BoardScan boardScan;
 
-	}
+	private Mat frame;
+	private VideoCapture camera;
+	private BufferedImage orginal;
+	private volatile boolean readCameraLoop = true;
 	
-	//Clean up Mat image for easier optical character recognition processing
-	private static Mat getUsableImg(Mat sourceImg, int erosion_size)
-	{
-
-		Mat usableImg = new Mat(sourceImg.size(), IPL_DEPTH_8U);
-		Imgproc.cvtColor(sourceImg.clone(), usableImg, Imgproc.COLOR_BGR2GRAY);
-		Imgproc.Canny(usableImg, usableImg, 150, 255, 3, false);
-
-		Point erodePoint = new Point(erosion_size, erosion_size);
-		Size erodeSize = new Size(2 * erosion_size + 1, 2 * erosion_size + 1);
-		Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, erodeSize, erodePoint);
-		Imgproc.dilate(usableImg, usableImg, element);
-
-		return usableImg;
-	}
-
-	//Mat to BufferedImage
-	public static BufferedImage ToBufferedImage(Mat frame) 
-	{
-		int type = 0;
-		if (frame.channels() == 1) 
+	public void display()
+	{	//Gets the webcam's images and pass it to the boardScan to get other views, finally shows the soltuion as an overlay of the camera feed.
+		if(!camera.isOpened())
 		{
-			type = BufferedImage.TYPE_BYTE_GRAY;
-		} else if (frame.channels() == 3) 
-		{
-			type = BufferedImage.TYPE_3BYTE_BGR;
+			System.err.println("Error: No camera found!");
+			System.exit(0);
 		}
-		BufferedImage image = new BufferedImage(frame.width(), frame.height(), type);
-		WritableRaster raster = image.getRaster();
-		DataBufferByte dataBuffer = (DataBufferByte) raster.getDataBuffer();
-		byte[] data = dataBuffer.getData();
-		frame.get(0, 0, data);
-		return image;
+		else 
+		{  
+			System.out.println("Creating image display");
+			this.boardScan = new BoardScan();
+			JFrame frame0 = window(orginal, "Images2", 0, 0);
+			new Thread(boardScan).start();
+			frame0.getContentPane().add(this);
+			
+			while(readCameraLoop)
+			{        
+				if (camera.read(frame))
+				{
+					frame0.repaint();
+					frame0.revalidate();
+					try{
+						boardMap = boardScan.findBoardImg(frame, .5, .95, 3);
+						screenImg = ImgUtil.ToBufferedImage((boardMap.containsKey(Views.SCREEN_VIEW))? boardMap.get(Views.SCREEN_VIEW): frame);
+					}catch(NullPointerException e){
+						//no board was found within the frame, grab new image from webcam
+						screenImg = ImgUtil.ToBufferedImage(frame);
+					}
+
+					try{
+						cellMap = BoxScan.findBoxImg(boardMap.get(Views.CROP_VIEW), .2, .5, 6);
+					}catch(NullPointerException e){
+						//Grab new frame from webcam to be processed again.
+						continue;
+					}finally{
+						try {
+							Thread.sleep(100);
+						} catch (InterruptedException e) {
+							e.printStackTrace();
+						}
+					}//Finally end
+				}//If end
+			}//While end	
+		}//else end
+		camera.release();
 	}
 
-	//Provide some colors for display depending on the value given
-	public static Scalar getColor(int i)
-	{
-		Color c;
-		switch(i){
-		case 0: c = Color.red; break;
-		case 1: c = Color.orange; break;
-		case 2: c = Color.blue; break;
-		case 3: c = Color.black; break;
-		case 4: c = Color.cyan; break;
-		case 5: c = Color.white; break;
-		case 6: c = Color.yellow; break;
-		case 7: c = Color.magenta; break;
-		case 8: c = Color.green; break;
-		default: c = Color.gray; break;
-		}
-		return new Scalar(c.getBlue(), c.getGreen(), c.getRed());
-	}
 	
-	//Print board to console for Debugging for CellObjects
-	public static void printBoard(int[][] table)
-	{
-		for (int i = 0; i < BOARD_DIMENSION; i++) {
-			if (i%BOX_DIMENSION == 0)
-				System.out.println(" -----------------------");
-			for (int j = 0; j < BOARD_DIMENSION; j++) {
-				if (j%BOX_DIMENSION == 0)
-					System.out.print("| ");
-				System.out.print( (table[i][j] == 0) ? " " :
-					Integer.toString(table[i][j]));
-				System.out.print(' ');
+	@Override
+	public void paint(Graphics g) 
+	{	//Display images to the user by redrawing new images to the created window
+		try{
+			//Top Left (Webcam feed and solution overlay)
+			g.drawImage(screenImg, 0, 0, this);
+		}catch(NullPointerException e){
+			g.drawImage(ImgUtil.ToBufferedImage(frame), 0, 0, this);
+		}
+		
+		try{
+			//Top Right (Locate Board)
+			BufferedImage cropLineImg = ImgUtil.ToBufferedImage(boardMap.get(Views.BOARD_OUTLINE_VIEW));
+			g.drawImage(cropLineImg ,cropLineImg.getWidth(), 0, this);
+			
+			//Bottom Left (Locate the 3x3 boxes)
+			BufferedImage cropImg = ImgUtil.ToBufferedImage(cellMap.get(Views.BOX_OUTLINE_VIEW));
+			g.drawImage(cropImg , 0, screenImg.getHeight(), this);
+
+			//Bottom Middle (Clean image for OCR)
+			BufferedImage machineViewImg = ImgUtil.ToBufferedImage(cellMap.get(Views.MACHINE_VIEW));
+			g.drawImage(machineViewImg ,cropImg.getWidth(), screenImg.getHeight(), this);
+
+			//Blob counter images, Bottom Right
+			BufferedImage image = null;
+			int position = machineViewImg.getWidth()+cropImg.getWidth();
+			for(int i = 0; i < 3; i++)
+			{
+				for(int j = 0; j < 3; j++)
+				{
+					image = ImgUtil.ToBufferedImage(cellMap.get(Invert_Box.getEnum(((i*3)+j)))); //Invert_Boxes.getEnum(((i*3)+j))
+					g.drawImage(image, position+(image.getWidth()*j), screenImg.getHeight()+(image.getHeight()*i), this);
+				}
 			}
-			System.out.println("|");
+		}catch(NullPointerException e){
+			//Image was not in range of a board, no usable data could be extracted
 		}
-		System.out.println(" -----------------------");
-		System.out.println();
 	}
 
+	public CaptureWebcam() 
+	{	//Constructor to start webcam capture
+		this.camera = new VideoCapture(0);
+		this.frame = new Mat();
+		this.camera.read(frame);
+		this.orginal = ImgUtil.ToBufferedImage(frame);
+	}
+
+	public CaptureWebcam(BufferedImage img) 
+	{
+		orginal = img;
+	}   
+
+	public JFrame window(BufferedImage img, String text, int x, int y) 
+	{	//Create window and display content to screen
+		JFrame frame0 = new JFrame();
+		frame0.addWindowListener(new WindowAdapter() {
+			  public void windowClosing(WindowEvent e) {
+				  readCameraLoop = false; 
+				  boardScan.stop();
+				  System.exit(0);
+			  }
+			});
+		frame0.getContentPane().add(new CaptureWebcam(img));
+		frame0.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+		frame0.setTitle(text);
+
+		frame0.setSize(img.getWidth()*2, img.getHeight()*2 + 30);
+		frame0.setLocation(x, y);
+		frame0.setVisible(true);
+		
+		
+		return frame0;
+	}
+	
 }
