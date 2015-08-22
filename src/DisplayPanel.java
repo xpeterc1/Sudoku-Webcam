@@ -28,7 +28,7 @@ import EnumValues.EnumValues;
  * 
  * This code will show an application views of different process used to try and solve the puzzle
  * */
-public class CaptureWebcam extends JPanel{
+public class DisplayPanel extends JPanel{
 	private static final long serialVersionUID = 4152259007829979107L;
 
 	private static Map<EnumValues<Integer>, Mat> boardMap;
@@ -129,7 +129,7 @@ public class CaptureWebcam extends JPanel{
 		}
 	}
 
-	public CaptureWebcam() 
+	public DisplayPanel() 
 	{	//Constructor to start webcam capture
 		this.camera = new VideoCapture(0);
 		this.frame = new Mat();
@@ -137,7 +137,7 @@ public class CaptureWebcam extends JPanel{
 		this.orginal = ImgUtil.ToBufferedImage(frame);
 	}
 
-	public CaptureWebcam(BufferedImage img) 
+	public DisplayPanel(BufferedImage img) 
 	{
 		orginal = img;
 	}   
@@ -152,7 +152,7 @@ public class CaptureWebcam extends JPanel{
 				  System.exit(0);
 			  }
 			});
-		frame0.getContentPane().add(new CaptureWebcam(img));
+		frame0.getContentPane().add(new DisplayPanel(img));
 		frame0.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame0.setTitle(text);
 
