@@ -27,10 +27,10 @@ public class MySolver {
 	{	
 		long startTime = System.currentTimeMillis();
 		
-		SudokuCell[][] myBoard = new SudokuCell[BOARD_DIMENSION][BOARD_DIMENSION];
+		CellObject[][] myBoard = new CellObject[BOARD_DIMENSION][BOARD_DIMENSION];
 		for (int i=0; i < BOARD_DIMENSION; i++)
 			for(int j=0; j < BOARD_DIMENSION; j++)
-				myBoard[i][j] = new SudokuCell(board[i][j]);
+				myBoard[i][j] = new CellObject(board[i][j]);
 		
 		
 		if(!isPossibleToSolve(myBoard))
@@ -54,7 +54,7 @@ public class MySolver {
 		return true;
 	}
 
-	private static boolean isPossibleToSolve(SudokuCell[][] myBoard)
+	private static boolean isPossibleToSolve(CellObject[][] myBoard)
 	{	//Creates a reference of all Rows, Columns, and Boxes which we do an intersection based on the cell's index
 		List<Set<Integer>> rowRef = new ArrayList<Set<Integer>>(9);
 		if(!getRowReference(myBoard, rowRef))
@@ -77,7 +77,7 @@ public class MySolver {
 		return true;
 	}
 
-	private static boolean solve(int row, int col, SudokuCell[][] board)
+	private static boolean solve(int row, int col, CellObject[][] board)
 	{	//Based on Andrew Davison sudoku backTracking code
 		if (row == BOARD_DIMENSION) {
 			row = 0;  col++;    // move to top of next column
@@ -100,7 +100,7 @@ public class MySolver {
 		return false;
 	} 
 
-	private static boolean isLegal(SudokuCell[][] board, int rowIndex, int colIndex, Integer val)
+	private static boolean isLegal(CellObject[][] board, int rowIndex, int colIndex, Integer val)
 	{	//Legal checks if the given value is possible to be used at the given index within the board
 		//check row for duplicate elements
 		for (int col = 0; col < BOARD_DIMENSION; col++)  
@@ -123,7 +123,7 @@ public class MySolver {
 		return true; // no violations, so it's allowed
 	}
 
-	private static boolean getRowReference(SudokuCell[][] board, List<Set<Integer>> rowRef)
+	private static boolean getRowReference(CellObject[][] board, List<Set<Integer>> rowRef)
 	{	//get all values for each row on the board, list is row index and set is value of each row
 		for(int row = 0; row < BOARD_DIMENSION; row++)
 		{
@@ -139,7 +139,7 @@ public class MySolver {
 		return true;
 	}
 
-	private static boolean getColReference(SudokuCell[][] board, List<Set<Integer>> colRef)
+	private static boolean getColReference(CellObject[][] board, List<Set<Integer>> colRef)
 	{	//get all values for each column on the board, list is col index and set is value of each column
 		for(int col = 0; col < BOARD_DIMENSION; col++)
 		{
@@ -155,7 +155,7 @@ public class MySolver {
 		return true;
 	}
 
-	private static boolean getBoxReference(SudokuCell[][] board, List<Set<Integer>> boxRef)
+	private static boolean getBoxReference(CellObject[][] board, List<Set<Integer>> boxRef)
 	{	//get all value for each box on the board, list is index of each box and set is value of each box
 		for(int row = 0; row < BOARD_DIMENSION; row+=3)
 			for(int col = 0; col < BOARD_DIMENSION; col+=3)
@@ -255,7 +255,7 @@ public class MySolver {
 
 
 		MySolver.getSolution(HARD);
-		ImgHelper.printBoard(HARD);
+		ImgUtil.printBoard(HARD);
 
 	}
 }
