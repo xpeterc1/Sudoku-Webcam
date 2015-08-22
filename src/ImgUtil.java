@@ -58,6 +58,29 @@ public class ImgUtil {
 		return dilateDes;
 	}
 	
+	//invert black and white colors
+	public static Mat getInvert(Mat source, int erosionLvl){
+		Mat invert = new Mat();
+		Imgproc.threshold(getUsableImg(source.clone(), erosionLvl), invert, 240, 255, Imgproc.THRESH_BINARY_INV);
+		return invert;
+
+	}
+	
+	//Clean up Mat image for easier optical character recognition processing
+	private static Mat getUsableImg(Mat sourceImg, int erosion_size)
+	{
+
+		Mat usableImg = new Mat(sourceImg.size(), IPL_DEPTH_8U);
+		Imgproc.cvtColor(sourceImg.clone(), usableImg, Imgproc.COLOR_BGR2GRAY);
+		Imgproc.Canny(usableImg, usableImg, 150, 255, 3, false);
+
+		Point erodePoint = new Point(erosion_size, erosion_size);
+		Size erodeSize = new Size(2 * erosion_size + 1, 2 * erosion_size + 1);
+		Mat element = Imgproc.getStructuringElement(Imgproc.MORPH_RECT, erodeSize, erodePoint);
+		Imgproc.dilate(usableImg, usableImg, element);
+
+		return usableImg;
+	}
 
 	//Mat to BufferedImage
 	public static BufferedImage ToBufferedImage(Mat frame) 
