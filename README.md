@@ -2,10 +2,11 @@
 
 Libraries: [OpenCV 3.0](http://opencv.org/downloads.html) and [Java Tesseract OCR](https://github.com/tesseract-ocr/tesseract).
 
-Personal project for learning tracking and augmented reality by creating an application to solve Sudoku puzzles using a webcam or camera. 
-An image is scanned for a puzzle board, to determine its position in the image.
-Image is scanned for values using optical character recognition, and processed to find amount of clues given by the puzzle.
-Solve puzzle and redisplay the solution back to the user as an overlay on the video display.  
+Personal project for learning tracking and augmented reality, by creating an application to solve Sudoku puzzles using a webcam or camera. 
+An image is scanned to determine if a Sudoku puzzle board is present, is so locate its position.
+Using optical character recognition, the application will decipher values from the image and solve the puzzle once all hints are found.
+The solution is redisplayed back to the user as an overlay on top of the board image.
+  
 
 Image below shows the application running.  
 
